@@ -270,6 +270,11 @@ All*                         up   infinite      1   idle bibigrid-master-3k1tfyx
 
 ```
 
+TODO
+#### Features
+
+#### Partitions
+
 However, doing everything on the running cluster from a terminal can be quite bothersome. That's were Theia comes in.
 
 <details>
