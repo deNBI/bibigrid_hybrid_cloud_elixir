@@ -114,7 +114,7 @@ Try executing `openstack subnet list --os-cloud=openstack_cloud1` and `openstack
 
 Following the next steps you will update the [premade template](#premade-template). It contains two configurations for two clouds as a list. The first is for the cloud where the master runs. The second is for the second cloud - where a vpn worker is created to establish the connection. While there are optional keys that are once set for both clouds, all keys below need to be set for the clouds individually if not stated otherwise.
 
-As most resources (images, flavors, ...) are named differently on each cloud, we need to check resources for each cloud individually.
+As most resources (images, flavors, ...) are named differently on each cloud, we need to define resources for each cloud individually.
 
 ### SSH access information
 
@@ -133,7 +133,7 @@ openstack subnet list --os-cloud=openstack_cloud1
 openstack subnet list --os-cloud=openstack_cloud2
 ```
 
-This will return in two subnets. One for the first, one for the second cloud. Set the template's `subnet` keys to the respective results' `Name` key.
+Those commands each return the subnets of their respective cloud. Set the template's `subnet` keys to the respective results' `Name` key. Make sure that you use a subnet from the first result for the first cloud and a subnet from the second result for the second cloud.
 
 ### Instances
 
