@@ -61,7 +61,7 @@ Pick a sensible expiration date.
 
 ![Creation](images/ac_screen2.png)
 
-#### Merge Them
+#### Merge The Clouds.yamls
 In order for OpenStack and BiBiGrid to be able to access both `clouds.yaml` files you need to merge them - that includes giving them a unique name:
 
 ```yaml
@@ -112,28 +112,9 @@ Try executing `openstack subnet list --os-cloud=openstack_cloud1` and `openstack
 
 ## Configuration
 
-Following the next steps you will update the [premade template](#premade-template). It contains two configurations for two clouds as a list. The first is for the cloud where the master runs. The second is for the second cloud - where a vpn worker is created to establish the connection.
+Following the next steps you will update the [premade template](#premade-template). It contains two configurations for two clouds as a list. The first is for the cloud where the master runs. The second is for the second cloud - where a vpn worker is created to establish the connection. While there are optional keys that are once set for both clouds, all keys below need to be set for the clouds individually if not stated otherwise.
 
-<details>
-<summary>Why are some keys in the template already set?</summary>
-
-In this hands-on, we want to make things as easy as possible for you. Just check whether the key you've found is the correct one and matches with the one we've written down in the configuration file already.
-</details>
-
-### Waiting for post-launch Services (only for first cloud)
-
-Some clouds run one or more post-launch services on every started instance, to finish the initialization after an 
-instance is available (e.g. to configure local proxy settings or local available repositories). That might interrupt 
-BiBiGrid setting up the node (via Ansible). Therefore, BiBiGrid needs to wait for your post-launch service(s) to finish. For that BiBiGrid needs the 
-services' names. Set the key `waitForServices` to the list of services you would like to wait for. For Bielefeld 
-this would be `de.NBI_Bielefeld_environment.service`. In the future you should be able to find post-launch service names by 
-taking a look at your location's [Computer Center Specific](https://cloud.denbi.de/wiki/) site - if 
-post-launch services exist for your location.
-
-```yaml
-  waitForServices: 
-    - de.NBI_Bielefeld_environment.service
-```
+As most resources (images, flavors, ...) are named differently on each cloud, we need to check resources for each cloud individually.
 
 ### SSH access information
 
@@ -152,14 +133,12 @@ openstack subnet list --os-cloud=openstack_cloud1
 openstack subnet list --os-cloud=openstack_cloud2
 ```
 
-This will return in two subnets. One for the first, one for the second cloud. Set the templates' `subnet` key to the results' `Name` key.
+This will return in two subnets. One for the first, one for the second cloud. Set the template's `subnet` keys to the respective results' `Name` key.
 
 ### Instances
 
-BiBiGrid needs to know `type` and `image` for each server. Since those are often identical for the workers, 
+BiBiGrid needs to know `type` and `image` for each server. Since those are often identical for multiple workers, 
 you can simply use the `count` key to indicate multiple workers with the same `type` and `image`.
-
-As images and flavors differ between clouds, we check image and type for each cloud.
 
 #### Image
 Images are virtual disks with a bootable operating system. Choosing an image means choosing the operating 
@@ -185,6 +164,8 @@ Set the template's `image` key of all instances of cloud1 (first configuration) 
 openstack image list --os-cloud=openstack_cloud2 | grep active | grep "Ubuntu 22.04"
 ```
 
+and set it accordingly.
+
 <details>
 <summary>Do I have to update my configuration file whenever there is a new image version?</summary>
 
@@ -202,10 +183,9 @@ openstack flavor list --os-cloud=openstack_cloud1
 openstack flavor list --os-cloud=openstack_cloud2
 ```
 
-Set the template's `flavor` keys (`NAME` in the commands' output) to flavors of your choice. You can use a different flavor for the master and each worker-group. Make sure to only use flavor's from openstack_cloud1 for the first configuration and flavor's of openstack_cloud2 for the second configuration.
+Set the template's `flavor` keys (`NAME` in the commands' output) to flavors of your choice. You can use a different flavor for the master, vpnwkr and each worker-group. Make sure to only use flavor's from openstack_cloud1 for the first configuration and flavor's of openstack_cloud2 for the second configuration.
 
-<details>
-<summary>Example: Multiple worker groups</summary>
+#### Multiple worker groups
 
 The key `workerInstances` expects a list. Each list element is a `worker group` with an `image` + `type` combination and a `count`. In our tutorial we use a single worker group containing two workers. Since they are in the same worker group, they are identical in flavor and image. We could, however, define two worker groups with one worker each in order to use different flavors for them.
 
@@ -218,7 +198,18 @@ workerInstances:
     image: ubuntu-22.04-image-name
     count: 1
 ```
-</details>
+
+### Waiting for post-launch Services (only for first cloud)
+
+Some clouds run one or more post-launch services on every started instance, to finish the initialization after an 
+instance is available (e.g. to configure local proxy settings or local available repositories). That might interrupt 
+BiBiGrid setting up the node (via Ansible). Therefore, BiBiGrid needs to wait for your post-launch service(s) to finish. For that BiBiGrid needs the 
+services' names. Set the key `waitForServices` to the list of services you would like to wait for.
+
+```yaml
+  waitForServices: 
+    - de.NBI_Bielefeld_environment.service
+```
 
 
 ### Check Your Configuration
@@ -262,26 +253,42 @@ will differ on every run. Run `sinfo` after logging in. You should see something
 
 ```
 PARTITION                 AVAIL  TIMELIMIT  NODES  STATE NODELIST
-openstack_cloud1             up   infinite      3  idle~ bibigrid-worker-3k1tfyx3o3s4g5a-[0-1]
-openstack_cloud1             up   infinite      1   idle bibigrid-master-3k1tfyx3o3s4g5a
-openstack_cloud2             up   infinite      4  idle~ bibigrid-worker-3k1tfyx3o3s4g5a-[2-3]
-All*                         up   infinite      7  idle~ bibigrid-worker-3k1tfyx3o3s4g5a-[0-6]
-All*                         up   infinite      1   idle bibigrid-master-3k1tfyx3o3s4g5a
+openstack_cloud1             up   infinite      3  idle~ bibigrid-worker-6jh83w0n3vsip90-[0-1]
+openstack_cloud1             up   infinite      1   idle bibigrid-master-6jh83w0n3vsip90
+openstack_cloud2             up   infinite      4  idle~ bibigrid-worker-6jh83w0n3vsip90-[2-3]
+All*                         up   infinite      7  idle~ bibigrid-worker-6jh83w0n3vsip90-[0-6]
+All*                         up   infinite      1   idle bibigrid-master-6jh83w0n3vsip90
 
 ```
-
-TODO
-#### Features
-
-#### Partitions
-
-However, doing everything on the running cluster from a terminal can be quite bothersome. That's were Theia comes in.
 
 <details>
 <summary>Why are there two partitions (openstack and all) with the same nodes?</summary>
 
+#### Partitions
+
 BiBiGrid creates one partition for every cloud (here `openstack`) and one partition called `all` containing all nodes from all partitions. Since we are only using one cloud for this tutorial, we only have `openstack` and `all`.
 </details>
+
+<details>
+<summary>Why are there two partitions (openstack and all) with the same nodes?</summary>
+
+#### Features
+Run `sinfo -o "%35n  %20P %10c  %10m  %25f"`. You should see something like this (skipping the *all partitions):
+
+```
+HOSTNAMES                            PARTITION            CPUS        MEMORY      AVAIL_FEATURES
+bibigrid-worker-25r4w0fwfxxt27b-0    openstack_cloud1     1           1000        (null)                   
+bibigrid-worker-25r4w0fwfxxt27b-1    openstack_cloud1     1           1000        (null)           
+bibigrid-master-25r4w0fwfxxt27b      openstack_cloud1     4           3500        (null)                   
+bibigrid-worker-25r4w0fwfxxt27b-2    openstack_cloud2     1           1000        some_feature, some_database
+bibigrid-worker-25r4w0fwfxxt27b-3    openstack_cloud2     2           1000        some_database          
+[...]
+```
+
+As you can see features were assigned depending on where they have been pre-written in the configuration. If written at instance level, only those instances have the feature. If written in the 
+</details>
+
+However, doing everything on the running cluster from a terminal can be quite bothersome. That's were Theia comes in.
 
 ### Using Theia Web IDE
 
@@ -311,7 +318,6 @@ In this section, you will execute the `resFinder` workflow to create a heatmap o
 After successfully connecting to Theia IDE, we will now run our first job on our cluster. Let's start with a "hello world".
 
 - Open a terminal
-
 - Create a new shell script `nano /vol/spool/helloworld.sh`:
 
 ```shell
@@ -326,6 +332,8 @@ sleep 10
 - The master will now power up worker nodes (as you described it in `bibigrid.yml`) to assist him with this job. Execute `sinfo` after a few seconds to see the current node status.
 - View information about all scheduled jobs by executing `squeue`. You will see your job `helloworld` there.
 - You can see `helloworld`'s output using [cat](https://linux.die.net/man/1/cat) `cat /vol/spool/slurm-*.out`.
+
+Try doing the same again, but use `sbatch --array=1-50 --job-name=helloworld helloworld.sh --constraint=some_feature`. When running `squeue` you will notice that only nodes are used  that have the `some_feature` requirement (using the template only a single node).
 </details>
 
 ### Setting up nextflow
