@@ -42,8 +42,8 @@
   subnet: # enter your subnet here
 
   # Depends on the services that run on server start at your cloud site
-  waitForServices:
-    - de.NBI_Bielefeld_environment.service
+  # waitForServices:
+  #   - cloud1.service
 
   # Suspend worker nodes after 9 hours being idle; only for testing purposes
   slurmConf:
@@ -53,7 +53,6 @@
 - infrastructure: openstack # former mode.
   cloud: openstack_cloud2 # name of clouds.yaml entry; you should pick a more fitting name
 
-  # master configuration
   vpnInstance:
     type: # enter a flavor available on this cloud here
     image: # enter your image here
@@ -79,3 +78,7 @@
 
   features:
     - some_database
+
+  # Depends on the services that run on server start at your cloud site
+  # waitForServices:
+  #   - cloud2.service
