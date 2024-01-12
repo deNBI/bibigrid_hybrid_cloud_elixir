@@ -1,14 +1,14 @@
 # BiBiGrid Hybrid- and Multi-Cloud Hands-on
 
-This tutorial is a reworked/optimized version of the Hands-on session of the [**Cloud User Meeting: BiBiGrid Hands-on**](https://github.com/deNBI/bibigrid_clum) based on the latest release of BiBiGrid.
+This tutorial is a reworked version of the Hands-on session of the [**Cloud User Meeting: BiBiGrid Hands-on**](https://github.com/deNBI/bibigrid_clum) based on the latest release of BiBiGrid for Hybrid- and Multi-Cloud setups.
 
 ## Prerequisites
 
 - System base on Linux, OSX (tested) or Windows Subsystem for Linux (untested)
-- required software packages 
-  - Python > 3.6  
+- required software packages
+  - Python > 3.6
   - git (required)
-  - openssh 
+  - openssh
 - Openstack API access to two clouds
 
 ## Download BiBiGrid
@@ -109,26 +109,46 @@ You will now install packages required by BiBiGrid within your newly created vir
 
 `pip install -r requirements.txt`
 
-Try executing `openstack subnet list --os-cloud=openstack_cloud1` and `openstack subnet list --os-cloud=openstack_cloud2` within this environment. If it runs without errors, you are ready to proceed. Otherwise you need to check your merged `clouds.yaml` and your virtual environment.
+Try executing 
+
+```sh
+openstack subnet list --os-cloud=openstack_cloud1
+openstack subnet list --os-cloud=openstack_cloud2
+```
+
+within this environment. The fist command returns all subnets from `openstack_cloud1` the second from `openstack_cloud2`. If it runs without errors, you are ready to proceed. Otherwise you need to check your merged `clouds.yaml` and your virtual environment.
+
+In the next steps you will repeatedly call similar commands in order to get resource names. Make sure to only use resources of `openstack_cloud1` for the configuration element containing `cloud: openstack_cloud1` and resources of `openstack_cloud2` for the configuration element containing `cloud: openstack_cloud2` (see [Cloud](#cloud)).
 
 ## Configuration
 
-Following the next steps you will update the [premade template](#premade-template). It contains a list. The first element is the configuration for the cloud where the master runs. The second configuration is for another cloud - where a vpn worker is created to establish the connection. While there are optional keys that are once set for both clouds, all keys below need to be set for the clouds individually if not stated otherwise.
+Following the next steps you will update the [premade template](#premade-template). It contains a list. The first element is the configuration for the cloud where the master runs. The second configuration is for another cloud - where a vpn worker is created to establish the connection. While there are global keys that are once set for both clouds, all keys that follow are cloud specific.
 
-As most resources (images, flavors, ...) are named differently on each cloud, we need to define resources for each cloud individually.
+As most resources (images, flavors, ...) are named differently on each cloud, we need to check and define resources for each cloud individually.
 
-You set all of the following keys in your `~/.config/bibigrid/bibigrid.yml` file. 
+All of the following keys are placed in your `~/.config/bibigrid/bibigrid.yml` file. 
 
 ### Cloud
-You need to set the cloud keys to their respective name in the merged `cloud.yaml` to enable BiBiGrid to read the correct `clouds.yaml` authentication information.
+Set the cloud keys to their respective name in the merged `cloud.yaml` to enable BiBiGrid to read the correct `clouds.yaml` authentication information. So if your merged `clouds.yaml` has the keys `openstack_cloud1` and `openstack_cloud2` under `cloud`:
 
 ```yaml
-[...]
+clouds:
+  openstack_cloud1:    
+    [...]
+
+  openstack_cloud2:    
+    [...]     
+```
+
+your `infrastructure` and `cloud` keys should name them:
+
+```yaml
 - infrastructure: openstack # former mode.
   cloud: openstack_cloud1 # name of clouds.yaml entry; you should pick a more fitting name
-
+  [...]
 - infrastructure: openstack # former mode.
   cloud: openstack_cloud2 # name of clouds.yaml entry; you should pick a more fitting name
+  [...]
 ```
 
 ### SSH access information
@@ -152,7 +172,7 @@ Those commands each return the subnets of their respective cloud. Set the templa
 
 ### Instances
 
-BiBiGrid needs to know `type` (often also called flavor) and `image` for each server. Since those are often identical for multiple workers, 
+BiBiGrid needs to know `type` (also called flavor) and `image` for each server. Since those are often identical for multiple workers, 
 you can simply use the `count` key to indicate multiple workers with the same `type` and `image`.
 
 #### Image
@@ -163,20 +183,20 @@ Since [images](https://docs.openstack.org/image-guide/introduction.html) are oft
 look up the current active image using:
 
 ```shell
-openstack image list --os-cloud=openstack_cloud1 | grep active
-openstack image list --os-cloud=openstack_cloud2 | grep active
+openstack image list  --status active --os-cloud=openstack_cloud1
+openstack image list  --status active --os-cloud=openstack_cloud2
 ```
 
 Since we will use Ubuntu 22.04 you might as well use:
 
 ```shell
-openstack image list --os-cloud=openstack_cloud1 | grep active | grep "Ubuntu 22.04"
+openstack image list  --status active --os-cloud=openstack_cloud1 | grep "Ubuntu 22.04"
 ```
 
 Set the template's `image` key of all instances of cloud1 (first configuration) to the result's `NAME` entry of the Ubuntu 22.04 row. Repeat the same for cloud2 (second configuration):
 
 ```shell
-openstack image list --os-cloud=openstack_cloud2 | grep active | grep "Ubuntu 22.04"
+openstack image list  --status active --os-cloud=openstack_cloud2 | grep "Ubuntu 22.04"
 ```
 
 and set it accordingly.
@@ -184,21 +204,21 @@ and set it accordingly.
 <details>
 <summary>Do I have to update my configuration file whenever there is a new image version?</summary>
 
-If you use the method described above, yes. However, you can also use a regex instead of a specific name to select an image during runtime. This has also avoids issues that may arise whenever an image is deactivated while your cluster is still running. For our Ubuntu 22.04 images you could use `^Ubuntu 22\.04 LTS \(.*\)$`, but usually you need to check what image names are available at your location and choose the regex accordingly. For more information on this functionality take a look at BiBiGrids [full documentation](https://github.com/BiBiServ/bibigrid/blob/master/documentation/markdown/features/configuration.md#using-regex).
+If you use the method described above, yes. However, you can also use a regex instead of a specific name to select an image during runtime. This also avoids issues that may arise whenever an image is deactivated while your cluster is still running. For our Ubuntu 22.04 images you could use `^Ubuntu 22\.04 LTS \(.*\)$`, but usually you need to check what image names are available at your location and choose the regex accordingly. For more information on this functionality take a look at BiBiGrids [full documentation](https://github.com/BiBiServ/bibigrid/blob/master/documentation/markdown/features/configuration.md#using-regex).
 </details>
 
 #### Flavor
 
 Flavors are available hardware configurations.
 
-The following gives you a list of all flavors:
+The following gives you a list of all flavors (first command for cloud `openstack_cloud1`, second command for `openstack_cloud2`):
 
 ```shell
 openstack flavor list --os-cloud=openstack_cloud1
 openstack flavor list --os-cloud=openstack_cloud2
 ```
 
-Set the template's `flavor` keys to the `NAME` of the flavor of your choice. You can use a different flavor for master, vpnwkr and each worker-group. Make sure to only use flavors from openstack_cloud1 for the first configuration and flavors of openstack_cloud2 for the second configuration.
+Set the template's `type` keys to the `NAME` of the flavor of your choice. You can use a different flavor for master, vpnwkr and each worker-group. Make sure to only use flavors from `openstack_cloud1` for the first configuration and flavors of `openstack_cloud2` for the second configuration.
 
 #### Multiple worker groups
 
@@ -224,9 +244,9 @@ The key `workerInstances` expects a list. Each list element is a `worker group` 
   [...]
 ```
 
-You can ignore the `features` key for now. If you are interested, you can read [What's the meaning of the feature key?](#features) later.
+You can ignore the `features` key for now. If you would like to know more about it, you can read [What's the meaning of the feature key?](#features) later.
 
-### Waiting for post-launch Services (only for first cloud)
+### Waiting for post-launch Services
 
 Some clouds run one or more post-launch services on every started instance, to finish the initialization after an 
 instance is available (e.g. to configure local proxy settings or local available repositories). That might interrupt 
@@ -243,11 +263,13 @@ For example
       - cloud2.service
 ```
 
-If you have no such services, you can simply omit the key.
+If you have no such services or are unsure, simply omit the key.
 
 ### Check Your Configuration
 Run `./bibigrid.sh -i bibigrid.yml -ch -v` to check your configuration. The command line argument 
 `-v` allows for greater verbosity which will make it easier for you to fix any configuration issues. If the error doesn't seem helpful, make sure the file's indentation is correct.
+
+If you get errors regarding certain resources not being found - e.g. image or flavor not found - make sure you assigned them to the correct cloud.
 
 ## The Cluster
 ### Starting the cluster
